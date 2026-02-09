@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Claude Code local config
+.claude/
+
+# User data (workspace projects)
+projects/
+
+# Backups
+*.bak
+
+# Windows artifacts
+nul
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# MCP test files
+mcp-server/test-*.js

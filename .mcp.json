@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "timesheet": {
+      "command": "node.exe",
+      "args": ["./mcp-server/index.js"]
+    }
+  }
+}

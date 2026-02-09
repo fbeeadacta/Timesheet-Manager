@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Manager</title>
+    <!-- Dipendenze esterne -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Banner Riconnessione Workspace -->
+    <div class="reconnect-banner hidden" id="reconnectBanner">
+        <div class="reconnect-content">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+            </svg>
+            <span>Workspace "<span class="workspace-name">-</span>" disponibile</span>
+            <button class="reconnect-btn" onclick="reconnectWorkspace()">Riconnetti</button>
+            <button class="reconnect-dismiss" onclick="dismissReconnectBanner()" title="Ignora">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="app-brand">
+            <svg class="app-logo" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h1>Timesheet Manager</h1>
+        </div>
+        <div class="app-file-status-header" id="headerFileStatus">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span>Nessun file</span>
+        </div>
+        <div class="app-header-actions">
+            <button class="header-btn" onclick="openWorkspace()" title="Apri Workspace">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                </svg>
+                <span>Workspace</span>
+            </button>
+            <button class="header-btn success" onclick="saveCurrentProject()" title="Salva progetto">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+                <span>Salva</span>
+            </button>
+            <button class="header-btn header-btn-mcp" onclick="showMcpGuide()" title="Guida MCP">
+                <span class="mcp-status-indicator" id="mcpStatusIndicator"></span>
+                <svg class="mcp-logo" viewBox="20 15 150 175" fill="none">
+                    <path d="M25 97.8528L92.8823 29.9706C102.255 20.598 117.451 20.598 126.823 29.9706C136.196 39.3431 136.196 54.5391 126.823 63.9117L75.5581 115.177" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+                    <path d="M76.2653 114.47L126.823 63.9117C136.196 54.5391 151.392 54.5391 160.765 63.9117L161.118 64.2652C170.491 73.6378 170.491 88.8338 161.118 98.2063L99.7248 159.6C96.6006 162.724 96.6006 167.789 99.7248 170.913L112.331 183.52" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+                    <path d="M109.853 46.9411L59.6482 97.1457C50.2757 106.518 50.2757 121.714 59.6482 131.087C69.0208 140.459 84.2168 140.459 93.5894 131.087L143.794 80.8822" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="two-cols">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-wrapper">
+                    <!-- Sezione Progetti -->
+                    <section class="sidebar-section" data-section="projects">
+                        <div class="section-header" onclick="toggleSection('projects')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                            </svg>
+                            <span class="section-title">Progetti</span>
+                            <svg class="section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                        <div class="section-content">
+                            <button class="sidebar-action" onclick="showNewProjectModal()">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Nuovo Progetto
+                            </button>
+                            <ul class="project-list" id="projectList"></ul>
+                        </div>
+                    </section>
+
+                    <!-- Sezione Mese -->
+                    <section class="sidebar-section collapsed" data-section="month" id="monthSection">
+                        <div class="section-header" onclick="toggleSection('month')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="section-title">Mese</span>
+                            <span class="section-badge month-badge" id="monthBadge">-</span>
+                            <svg class="section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                        <div class="section-content">
+                            <div id="monthSelector"></div>
+                        </div>
+                    </section>
+
+                </div>
+            </aside>
+
+            <!-- Main content -->
+            <main class="main-content">
+                <!-- Empty state (quando nessun progetto selezionato) -->
+                <div class="card" id="noProjectCard">
+                    <div class="empty-state">
+                        <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <h3>Benvenuto</h3>
+                        <p>Seleziona un progetto esistente dalla lista a sinistra oppure creane uno nuovo per iniziare a gestire i tuoi timesheet.</p>
+                        <button onclick="showNewProjectModal()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Crea il tuo primo progetto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Project view (quando progetto selezionato) -->
+                <div class="project-view hidden" id="projectView">
+                    <!-- Project Header -->
+                    <div class="project-header">
+                        <div class="project-title">
+                            <h2 id="projectTitle">Nome Progetto</h2>
+                            <div class="project-meta" id="projectMeta">-</div>
+                        </div>
+                        <div class="project-actions">
+                            <button class="icon-btn" onclick="showSettingsModal()" title="Impostazioni">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" onclick="importProject()" title="Importa backup">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" onclick="exportCurrentProject()" title="Esporta backup">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab active" data-tab="upload" onclick="switchTab('upload')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Carica
+                        </button>
+                        <button class="tab" data-tab="data" onclick="switchTab('data')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            Dati
+                            <span class="tab-badge" id="dataCountBadge">0</span>
+                        </button>
+                        <button class="tab" data-tab="summary" onclick="switchTab('summary')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Riepilogo
+                        </button>
+                    </div>
+
+                    <!-- Tab: Upload -->
+                    <div class="tab-panel active" id="uploadPanel">
+                        <div class="card">
+                            <h2>Carica Timesheet</h2>
+                            <div class="drop-zone" id="dropZone">
+                                <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p>Trascina qui il file Excel (.xls/.xlsx)<br>oppure <strong>clicca per selezionare</strong></p>
+                            </div>
+                            <input type="file" id="fileInput" accept=".xls,.xlsx">
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--gray-200);">
+                                <button class="secondary" onclick="loadFromHistory()" id="loadHistoryBtn" disabled>
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Carica Storico Salvato
+                                </button>
+                                <span id="historyCount" style="margin-left: 10px; font-size: 0.85em; color: var(--gray-500);"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Data -->
+                    <div class="tab-panel" id="dataPanel">
+                        <!-- Tools Section -->
+                        <div class="tools-section" id="toolsSection">
+                            <h2>Strumenti di Arrotondamento</h2>
+                            <div class="tools-grid">
+                                <!-- Tool 1: Arrotondamento Top-Down -->
+                                <div class="tool-card tool-card-warning collapsed" id="toolTopDown">
+                                    <div class="tool-header" onclick="toggleTool('toolTopDown')">
+                                        <div class="tool-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                            </svg>
+                                        </div>
+                                        <h3>Arrotondamento Top-Down</h3>
+                                        <svg class="tool-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="tool-content">
+                                        <p class="tool-description">Distribuisce proporzionalmente la differenza tra totale attuale e nuovo totale sulle righe selezionate.</p>
+                                        <div class="tool-stats">
+                                            <span>Totale: <strong id="grandTotal">0.00</strong> gg</span>
+                                            <span>Selez: <strong id="selectedCount">0</strong> (<strong id="selectedTotal">0.00</strong> gg)</span>
+                                        </div>
+                                        <div class="tool-controls">
+                                            <div class="control-group">
+                                                <label>Nuovo totale (gg)</label>
+                                                <input type="number" id="newTotal" step="0.25" min="0" placeholder="es. 3.5">
+                                            </div>
+                                            <div class="control-group" style="flex:0 0 auto;">
+                                                <label>Diff</label>
+                                                <div class="tool-preview" style="padding:8px 12px;margin:0;"><span id="diffDisplay">-</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="tool-actions">
+                                            <button id="applyRoundingBtn" disabled onclick="applyRounding()">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg>
+                                                Applica Arrotondamento
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tool 2: Distribuzione Uniforme -->
+                                <div class="tool-card tool-card-primary collapsed" id="toolUniform">
+                                    <div class="tool-header" onclick="toggleTool('toolUniform')">
+                                        <div class="tool-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                                            </svg>
+                                        </div>
+                                        <h3>Distribuzione Uniforme</h3>
+                                        <svg class="tool-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="tool-content">
+                                        <p class="tool-description">Divide equamente un totale specificato tra tutte le righe selezionate.</p>
+                                        <div class="tool-stats" id="uniformStats">
+                                            <span>Selezionate: <strong id="uniformSelectedCount">0</strong></span>
+                                            <span>Valore cadauna: <strong id="uniformValueEach">-</strong></span>
+                                        </div>
+                                        <div class="tool-controls">
+                                            <div class="control-group">
+                                                <label>Totale da distribuire (gg)</label>
+                                                <input type="number" id="uniformTotal" step="0.25" min="0" placeholder="es. 5" oninput="updateUniformPreview()">
+                                            </div>
+                                        </div>
+                                        <div class="tool-actions">
+                                            <button id="applyUniformBtn" disabled onclick="applyUniformDistribution()">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg>
+                                                Distribuisci
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tool 3: Ripristina Valori -->
+                                <div class="tool-card tool-card-success collapsed" id="toolRestore">
+                                    <div class="tool-header" onclick="toggleTool('toolRestore')">
+                                        <div class="tool-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                            </svg>
+                                        </div>
+                                        <h3>Ripristina Valori</h3>
+                                        <svg class="tool-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="tool-content">
+                                        <p class="tool-description">Ripristina i valori originali delle righe modificate. Puoi ripristinare solo le selezionate o tutte.</p>
+                                        <div class="tool-stats" id="restoreStats">
+                                            <span>Modificate: <strong id="modifiedTotalCount">0</strong></span>
+                                            <span>Selezionate mod.: <strong id="modifiedSelectedCount">0</strong></span>
+                                        </div>
+                                        <div class="tool-modified-list" id="modifiedList">
+                                            <div class="tool-message empty">Nessuna attività modificata</div>
+                                        </div>
+                                        <div class="tool-actions">
+                                            <button id="restoreSelectedBtn" disabled onclick="restoreSelectedRows()">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                </svg>
+                                                Ripristina Selezionate
+                                            </button>
+                                            <button class="secondary" id="restoreAllBtn" disabled onclick="restoreAllRows()">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Ripristina Tutte
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tool 4: Redistribuzione Eccedenze -->
+                                <div class="tool-card tool-card-danger collapsed" id="toolExcess">
+                                    <div class="tool-header" onclick="toggleTool('toolExcess')">
+                                        <div class="tool-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                            </svg>
+                                        </div>
+                                        <h3>Redistribuzione Eccedenze</h3>
+                                        <svg class="tool-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="tool-content">
+                                        <p class="tool-description">Trova le attività selezionate con più di 1 giornata, le porta a 1gg e distribuisce l'eccedenza sulle altre selezionate.</p>
+                                        <div class="tool-stats" id="excessStats">
+                                            <span>Con eccedenza: <strong id="excessCount">0</strong></span>
+                                            <span>Eccedenza tot: <strong id="excessTotal">0.00</strong> gg</span>
+                                        </div>
+                                        <div class="tool-excess-list" id="excessList">
+                                            <div class="tool-message empty">Nessuna attività selezionata con eccedenza (&gt;1gg)</div>
+                                        </div>
+                                        <div class="tool-actions">
+                                            <button id="redistributeExcessBtn" disabled onclick="redistributeExcess()">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                                </svg>
+                                                Redistribuisci
+                                            </button>
+                                            <button class="secondary" onclick="refreshExcessList()">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                </svg>
+                                                Aggiorna
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data table -->
+                        <div class="card" id="dataCard">
+                            <h2>Attivita</h2>
+
+                            <!-- Filtri Panel (Collapsible) -->
+                            <div class="filters-panel collapsed" id="filtersPanel">
+                                <div class="filters-panel-header" onclick="toggleFiltersPanel()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                    </svg>
+                                    <span class="filters-title">Filtri</span>
+                                    <span class="filter-badge" id="filterBadge">Tutti</span>
+                                    <svg class="filters-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                                <div class="filters-panel-content">
+                                    <div class="filters-grid">
+                                        <!-- Riga 1: Date + Ricerca -->
+                                        <div class="filters-row">
+                                            <div class="filter-item">
+                                                <label>Data Da</label>
+                                                <input type="date" id="filterDateFrom" onchange="applyFilters()">
+                                            </div>
+                                            <div class="filter-item">
+                                                <label>Data A</label>
+                                                <input type="date" id="filterDateTo" onchange="applyFilters()">
+                                            </div>
+                                            <div class="filter-item flex-1">
+                                                <label>Cerca in descrizione</label>
+                                                <input type="text" id="filterSearch" placeholder="Cerca..." oninput="applyFilters()">
+                                            </div>
+                                        </div>
+
+                                        <!-- Riga 2: Cluster + Collaboratore + Giornate -->
+                                        <div class="filters-row">
+                                            <div class="filter-item">
+                                                <label>Cluster</label>
+                                                <select id="filterCluster" onchange="applyFilters()">
+                                                    <option value="">Tutti</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-item">
+                                                <label>Collaboratore</label>
+                                                <select id="filterCollaboratore" onchange="applyFilters()">
+                                                    <option value="">Tutti</option>
+                                                </select>
+                                            </div>
+                                            <div class="filter-item">
+                                                <label>Giornate</label>
+                                                <div class="filter-range">
+                                                    <input type="number" id="filterGiornateMin" step="0.25" min="0" placeholder="Min" oninput="applyFilters()">
+                                                    <span>-</span>
+                                                    <input type="number" id="filterGiornateMax" step="0.25" min="0" placeholder="Max" oninput="applyFilters()">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Riga 3: Checkbox + Pulsante pulisci -->
+                                        <div class="filters-actions-row">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="filterModified" onchange="applyFilters()">
+                                                Solo modificate
+                                            </label>
+                                            <button class="small secondary" onclick="clearFilters()" title="Rimuovi filtri">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                                Pulisci filtri
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="select-actions">
+                                <button class="small" onclick="selectAll()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Seleziona Tutto
+                                </button>
+                                <button class="small secondary" onclick="selectNone()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Deseleziona
+                                </button>
+                                <button class="small secondary" onclick="selectByCluster()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                    </svg>
+                                    Per Cluster...
+                                </button>
+                                <span style="margin-left:auto; font-size:0.85em; color:var(--gray-500);">
+                                    Clicca sul cluster di una riga per modificarlo
+                                </span>
+                            </div>
+                            <div id="dataContent"></div>
+                            <div class="actions">
+                                <button class="success" onclick="exportReportExcel()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Esporta Report Excel
+                                </button>
+                                <button class="secondary" onclick="exportJSON()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    Esporta JSON
+                                </button>
+                                <button class="secondary" onclick="exportCSV()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    Esporta CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Summary -->
+                    <div class="tab-panel" id="summaryPanel">
+                        <div class="card" id="statsCard">
+                            <h2>Riepilogo</h2>
+                            <div class="stats">
+                                <div class="stat-box">
+                                    <div class="stat-icon">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="stat-value" id="statRighe">0</div>
+                                    <div class="stat-label">Attivita</div>
+                                </div>
+                                <div class="stat-box green">
+                                    <div class="stat-icon">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="stat-value" id="statImporto">0</div>
+                                    <div class="stat-label">Importo (EUR)</div>
+                                </div>
+                                <div class="stat-box orange">
+                                    <div class="stat-icon">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="stat-value" id="statGiornate">0</div>
+                                    <div class="stat-label">Giornate</div>
+                                </div>
+                                <div class="stat-box blue">
+                                    <div class="stat-icon">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="stat-value" id="statNuove">0</div>
+                                    <div class="stat-label">Nuove</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal nuovo progetto -->
+    <div class="modal-overlay hidden" id="newProjectModal" onclick="hideNewProjectModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>Nuovo Progetto</h3>
+            <div class="control-group" style="margin-bottom:15px;">
+                <label>Nome progetto</label>
+                <input type="text" id="newProjectName" placeholder="Es. Cliente ABC - 2024" style="width:100%;">
+            </div>
+            <div class="control-group" style="margin-bottom:15px;">
+                <label>Tariffa giornaliera (EUR)</label>
+                <input type="number" id="newProjectTariffa" value="600" style="width:100%;">
+            </div>
+            <div class="modal-actions">
+                <button class="secondary" type="button" onclick="hideNewProjectModal()">Annulla</button>
+                <button type="button" onclick="createProject()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Crea Progetto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal selezione cluster -->
+    <div class="modal-overlay hidden" id="selectClusterModal" onclick="hideSelectClusterModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>Seleziona per Cluster</h3>
+            <div id="selectClusterList"></div>
+            <div class="modal-actions">
+                <button class="secondary" type="button" onclick="hideSelectClusterModal()">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal impostazioni progetto -->
+    <div class="modal-overlay hidden" id="settingsModal" onclick="hideSettingsModal()">
+        <div class="modal modal-settings" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Impostazioni Progetto</h3>
+                <button class="modal-close" onclick="hideSettingsModal()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Settings Tabs -->
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-settings-tab="generale" onclick="switchSettingsTab('generale')">Generale</button>
+                    <button class="settings-tab" data-settings-tab="cluster" onclick="switchSettingsTab('cluster')">Cluster</button>
+                    <button class="settings-tab" data-settings-tab="tariffe" onclick="switchSettingsTab('tariffe')">Tariffe Consulenti</button>
+                </div>
+
+                <!-- Tab: Generale -->
+                <div class="settings-tab-panel active" id="settingsGeneralePanel">
+                    <div class="settings-group">
+                        <label>Nome Progetto</label>
+                        <input type="text" id="settingsProjectName">
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-group">
+                            <label>Tariffa giornaliera</label>
+                            <div class="input-with-suffix">
+                                <input type="number" id="settingsTariffa" value="600">
+                                <span>EUR/gg</span>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <label>Ore per giornata</label>
+                            <div class="input-with-suffix">
+                                <input type="number" id="settingsOreGiornata" value="8">
+                                <span>ore</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <label>Calcolo giornate equivalenti</label>
+                        <div class="toggle-group">
+                            <label class="toggle-option">
+                                <input type="radio" name="settingsCalcMode" value="tariffa" id="calcModeTariffa">
+                                <span class="toggle-label">
+                                    <strong>Adeguamento tariffa</strong>
+                                    <small>Giornate = Importo / Tariffa</small>
+                                </span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="radio" name="settingsCalcMode" value="ore" id="calcModeOre">
+                                <span class="toggle-label">
+                                    <strong>Conversione ore</strong>
+                                    <small>Giornate = Ore / Ore per giornata</small>
+                                </span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="radio" name="settingsCalcMode" value="tariffa_collaboratore" id="calcModeCollaboratore">
+                                <span class="toggle-label">
+                                    <strong>Tariffa per consulente</strong>
+                                    <small>Giornate = Importo / Tariffa consulente</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Cluster -->
+                <div class="settings-tab-panel" id="settingsClusterPanel">
+                    <div class="settings-group">
+                        <label>Cluster</label>
+                        <div class="settings-cluster-list" id="settingsClusterList"></div>
+                        <div class="add-cluster">
+                            <input type="text" id="newClusterName" placeholder="Nuovo cluster...">
+                            <input type="color" id="newClusterColor" value="#2563eb" title="Colore">
+                            <button onclick="addCluster()" class="small" title="Aggiungi cluster">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Tariffe Consulenti -->
+                <div class="settings-tab-panel" id="settingsTariffePanel">
+                    <p class="settings-hint">Imposta la tariffa giornaliera specifica per ogni consulente. I collaboratori vengono aggiunti automaticamente all'importazione di un file Excel.</p>
+                    <div class="collaborator-rates-list" id="collaboratorRatesList"></div>
+                    <div class="add-cluster">
+                        <input type="text" id="newCollaboratorName" placeholder="Aggiungi collaboratore...">
+                        <button onclick="addCollaboratorRate()" class="small" title="Aggiungi collaboratore">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="danger" onclick="deleteCurrentProject()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Elimina
+                </button>
+                <button class="secondary" onclick="hideSettingsModal()">Annulla</button>
+                <button onclick="saveSettings()">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input nascosto per import progetto -->
+    <input type="file" id="importProjectInput" accept=".json" style="display:none;">
+
+    <!-- Modal Migrazione Workspace -->
+    <div class="modal-overlay hidden" id="migrationModal">
+        <div class="modal modal-migration" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Migrazione Dati
+                </h3>
+            </div>
+            <div class="modal-body">
+                <p class="migration-intro">
+                    E' stato trovato un file <code>timesheet_data.json</code> nel workspace.
+                    Vuoi migrare i progetti esistenti al nuovo formato con cartelle separate?
+                </p>
+                <div class="migration-info">
+                    <h4>Cosa succedera:</h4>
+                    <ul>
+                        <li>Ogni progetto sara' salvato in una cartella dedicata</li>
+                        <li>I dati esistenti saranno preservati</li>
+                        <li>Il file originale sara' rinominato in <code>.bak</code></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary" onclick="skipMigration()">Salta</button>
+                <button onclick="runMigration()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Esegui Migrazione
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal guida MCP -->
+    <div class="modal-overlay hidden" id="mcpGuideModal" onclick="hideMcpGuide()">
+        <div class="modal modal-mcp-guide" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    Integrazione MCP
+                </h3>
+                <button class="modal-close" onclick="hideMcpGuide()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body mcp-guide-content">
+                <p class="mcp-intro">
+                    Il server <strong>MCP (Model Context Protocol)</strong> permette a Claude di operare direttamente sui dati dei timesheet tramite AI.
+                </p>
+
+                <div class="mcp-section">
+                    <h4>1. Installa le dipendenze</h4>
+                    <div class="mcp-code-block">
+                        <code>cd mcp-server && npm install</code>
+                        <button class="mcp-copy-btn" onclick="copyMcpCode(this)" title="Copia">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mcp-section">
+                    <h4>2. Configura Claude Code</h4>
+                    <p><strong>Opzione A (consigliata):</strong> Crea <code>.mcp.json</code> nella root del progetto:</p>
+                    <div class="mcp-code-block mcp-code-json">
+                        <pre><code>{
+  "mcpServers": {
+    "timesheet": {
+      "command": "node.exe",
+      "args": ["./mcp-server/index.js"]
+    }
+  }
+}</code></pre>
+                        <button class="mcp-copy-btn" onclick="copyMcpCode(this)" title="Copia">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <p style="margin-top: 12px;"><strong>Opzione B:</strong> Aggiungi a <code>~/.claude/settings.local.json</code>:</p>
+                    <div class="mcp-code-block mcp-code-json">
+                        <pre><code>{
+  "mcpServers": {
+    "timesheet": {
+      "command": "node",
+      "args": ["<span class="mcp-path-placeholder" id="mcpServerPath">PERCORSO/mcp-server/index.js</span>"]
+    }
+  }
+}</code></pre>
+                        <button class="mcp-copy-btn" onclick="copyMcpConfig()" title="Copia configurazione">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="mcp-hint" style="margin-top: 8px; font-size: 0.85em; color: #666;">Su Windows usa <code>node.exe</code> invece di <code>node</code></p>
+                </div>
+
+                <div class="mcp-section">
+                    <h4>3. Tool disponibili</h4>
+                    <div class="mcp-tools-grid">
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">list_projects</span>
+                            <span class="mcp-tool-desc">Elenca progetti</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">get_project</span>
+                            <span class="mcp-tool-desc">Dettagli progetto</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">get_activities</span>
+                            <span class="mcp-tool-desc">Attivita mese</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">assign_cluster</span>
+                            <span class="mcp-tool-desc">Assegna cluster</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">apply_rounding</span>
+                            <span class="mcp-tool-desc">Arrotonda giornate</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">get_month_summary</span>
+                            <span class="mcp-tool-desc">Riepilogo cluster</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">close_month</span>
+                            <span class="mcp-tool-desc">Chiudi mese</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">reopen_month</span>
+                            <span class="mcp-tool-desc">Riapri mese</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">create_cluster</span>
+                            <span class="mcp-tool-desc">Crea cluster</span>
+                        </div>
+                        <div class="mcp-tool">
+                            <span class="mcp-tool-name">manage_collaborator_rates</span>
+                            <span class="mcp-tool-desc">Gestisci tariffe</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mcp-note">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Supporta sia file singolo (v2) che workspace con cartelle per progetto (v3). Ricarica l'app per vedere le modifiche fatte via AI.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="hideMcpGuide()">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/app.js"></script>
+    <script src="js/logo.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/workspace.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/exporter.js"></script>
+    <script src="js/actions.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
