@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Web app statica per l'elaborazione di timesheet aziendali. Legge file Excel con rilevazioni attività, permette di clusterizzare le attività, convertire importi in giornate equivalenti, applicare arrotondamenti e generare report.
+Web app statica per l'elaborazione di timesheet aziendali. Legge file Excel con rilevazioni attività, permette di clusterizzare le attività, convertire importi in giornate equivalenti con tre modalita di calcolo (tariffa, ore, tariffa per consulente), applicare arrotondamenti e generare report.
+
+**Live:** https://fbeeadacta.github.io/Timesheet-Manager/
+**Repo:** https://github.com/fbeeadacta/Timesheet-Manager (pubblico, licenza MIT)
 
 ## Development
 
@@ -20,7 +23,9 @@ Web app statica per l'elaborazione di timesheet aziendali. Legge file Excel con 
 3. Creare un nuovo progetto (verra creata una cartella dedicata)
 4. Caricare un file Excel di timesheet nel formato "ElencoAttivitaSpeseXCliente"
 
-**Note:** Non ci sono test automatici, linting, CI/CD. Il frontend non ha `package.json` — le dipendenze sono caricate via CDN.
+**Deploy:** Ogni push su `main` triggera il deploy automatico su GitHub Pages via `.github/workflows/deploy.yml`.
+
+**Note:** Non ci sono test automatici ne linting. Il frontend non ha `package.json` — le dipendenze sono caricate via CDN.
 
 ## Git Workflow
 
@@ -72,18 +77,19 @@ Usare messaggi descrittivi che indicano il tipo di modifica:
 
 ### File Structure
 ```
-index.html          # HTML + markup
-css/styles.css      # Stili
-js/app.js          # App namespace + state iniziale
-js/utils.js        # App.Utils - Funzioni pure (hash, toast, date parsing)
-js/workspace.js    # App.Workspace - Gestione workspace e IndexedDB
-js/storage.js      # App.Storage - Persistenza (delega a Workspace)
-js/calculator.js   # App.Calculator - Calcoli, statistiche, arrotondamenti
-js/ui.js           # App.UI - Rendering componenti
-js/exporter.js     # App.Exporter - Export JSON/CSV/Excel
-js/actions.js      # App.Actions - Coordinatore azioni utente
-js/main.js         # Init + handler globali (funzioni window-scope)
-js/logo.js         # Logo SVG rendering
+index.html                    # HTML + markup
+css/styles.css                # Stili (colore primario: #5c88da)
+js/app.js                     # App namespace + state iniziale
+js/utils.js                   # App.Utils - Funzioni pure (hash, toast, date parsing)
+js/workspace.js               # App.Workspace - Gestione workspace e IndexedDB
+js/storage.js                 # App.Storage - Persistenza (delega a Workspace)
+js/calculator.js              # App.Calculator - Calcoli, statistiche, arrotondamenti
+js/ui.js                      # App.UI - Rendering componenti
+js/exporter.js                # App.Exporter - Export JSON/CSV/Excel
+js/actions.js                 # App.Actions - Coordinatore azioni utente
+js/main.js                    # Init + handler globali (funzioni window-scope)
+js/logo.js                    # Logo SVG rendering
+.github/workflows/deploy.yml  # GitHub Pages deploy (auto su push a main)
 ```
 
 Dipendenze esterne (CDN, no package.json frontend):
@@ -148,7 +154,8 @@ App.Actions         // Azioni utente
 - `App.Calculator.applyUniformDistribution()` - Distribuisce totale equamente sulle righe selezionate
 - `App.Calculator.redistributeExcess()` - Sposta eccedenze (>1gg) su altre righe selezionate
 - `App.Calculator.restoreRow()` - Ripristina valori originali di una riga
-- `App.Calculator.computeByMode()` - Calcola giornate/ore in base a calcMode (tariffa/ore)
+- `App.Calculator.computeByMode()` - Calcola giornate/ore in base a calcMode (tariffa/ore/tariffa_collaboratore)
+- `App.Calculator.getRateForRow()` - Ritorna tariffa corretta per riga (collaboratore o progetto)
 - `App.Exporter.toExcelReport()` - Genera report Excel formattato stile Adacta
 - `App.UI.getFilteredData()` - Applica tutti i filtri e restituisce righe filtrate
 - `App.UI.populateFilterDropdowns()` - Popola dinamicamente i select filtri
@@ -167,6 +174,7 @@ App.Actions         // Azioni utente
   "tariffa": 600,
   "oreGiornata": 8,
   "calcMode": "tariffa",
+  "collaboratorRates": {},
   "clusters": [{ "id": "cl_123", "name": "Sviluppo", "color": "#3498db" }],
   "currentMonth": "2026-02",
   "monthlyReports": {
@@ -200,8 +208,19 @@ L'app migra automaticamente dal formato v2 al v3 quando si apre un workspace con
 
 - **Giornate equivalenti** (calcMode=tariffa): `Importo / Tariffa`
 - **Giornate equivalenti** (calcMode=ore): `Ore / OreGiornata`
+- **Giornate equivalenti** (calcMode=tariffa_collaboratore): `Importo / TariffaCollaboratore`
 - **Ore equivalenti**: `Giornate × Ore per giornata`
-- **Valore**: `Giornate × Tariffa` (si aggiorna automaticamente modificando le giornate)
+- **Valore**: `Giornate × Tariffa` (si aggiorna automaticamente modificando le giornate; usa tariffa collaboratore se calcMode=tariffa_collaboratore)
+
+### Tariffa per Consulente (calcMode `tariffa_collaboratore`)
+
+Terza modalita di calcolo con tariffa specifica per ogni collaboratore:
+- `project.collaboratorRates` — mappa `{ "Nome Cognome": tariffaGiornaliera }`
+- Auto-popolamento collaboratori all'importazione Excel (rate=0, l'utente deve impostarla)
+- Se un collaboratore ha rate=0 o mancante: `giornate=0` + warning icon nella tabella (`_rateError`)
+- `App.Calculator.getRateForRow(row, project)` — helper che ritorna la tariffa corretta per calcMode
+- Modal impostazioni con 3 tab: Generale, Cluster, Tariffe Consulenti
+- Funzioni window-scope: `switchSettingsTab()`, `renderCollaboratorRatesList()`, `updateCollaboratorRate()`, `deleteCollaboratorRate()`, `addCollaboratorRate()`
 
 ## UI Components
 
@@ -268,6 +287,7 @@ Le funzioni chiamate dagli onclick HTML sono esposte a livello window in `main.j
 - Export: `exportJSON()`, `exportCSV()`, `exportReportExcel()`
 - Storage: `openDataFile()`, `createNewDataFile()`, `saveDataFile()`
 - Mesi: `selectWorkingMonth()`, `closeMonth()`, `reopenMonth()`, `closeCurrentMonth()`
+- Impostazioni: `switchSettingsTab()`, `renderCollaboratorRatesList()`, `updateCollaboratorRate()`, `deleteCollaboratorRate()`, `addCollaboratorRate()`
 
 ## Monthly Reports System
 
@@ -296,15 +316,16 @@ mcp-server/
 ├── index.js          # Entry point server MCP
 ├── timesheet.js      # Classe TimesheetData (supporta v2 e v3)
 └── tools/            # Tool MCP individuali
-    ├── helpers.js        # loadTimesheet() - carica file o workspace
+    ├── helpers.js                    # loadTimesheet() - carica file o workspace
     ├── list-projects.js
     ├── get-project.js
     ├── get-activities.js
     ├── assign-cluster.js
     ├── apply-rounding.js
     ├── get-month-summary.js
-    ├── close-month.js    # Include anche reopen_month
-    └── create-cluster.js
+    ├── close-month.js                # Include anche reopen_month
+    ├── create-cluster.js
+    └── manage-collaborator-rates.js  # Gestione tariffe per consulente
 ```
 
 ### Installazione
@@ -360,6 +381,7 @@ Il server espone un endpoint HTTP su porta **3847** per verificarne lo stato:
 | `close_month` | `filePath`, `projectId`, `month` | Chiude un mese |
 | `reopen_month` | `filePath`, `projectId`, `month` | Riapre un mese chiuso |
 | `create_cluster` | `filePath`, `projectId`, `name`, `color` | Crea nuovo cluster |
+| `manage_collaborator_rates` | `filePath`, `projectId`, `action`, `name?`, `rate?` | Gestisce tariffe per consulente (list/set/delete) |
 
 ### Formati Supportati
 - **v2 (file singolo):** `timesheet_data.json` con array di progetti
@@ -376,3 +398,23 @@ Il parametro `filePath` può essere:
 - I mesi chiusi non possono essere modificati (usare `reopen_month` prima)
 - Richiede Node.js >= 18
 - Guida configurazione disponibile nell'app: pulsante "MCP" in alto a destra
+
+## Design System
+
+### Colori
+- **Primario**: `#5c88da` (hover: `#4a73c4`, light: `#e0e9f7`)
+- **Warning**: `#ffc000` (usato per pulsante "Riapri Mese")
+- **Success**: `#10b981`
+- **Danger**: `#ef4444`
+- **Pulsante MCP**: gradiente `#5c88da` → `#00b0f0`
+- **MCP modal header**: stesso gradiente del pulsante MCP
+
+Le stat-box del Riepilogo e le tool-card degli strumenti derivano tutte dal colore primario con `color-mix()` per mantenere coerenza visiva. Modificando `--primary` in `:root` si aggiornano automaticamente tutti i componenti.
+
+## GitHub CLI
+
+Il progetto usa `gh` (GitHub CLI) per release e gestione repo. Installato in `C:\Program Files\GitHub CLI\gh.exe`.
+
+```bash
+"C:\Program Files\GitHub CLI\gh.exe" release create v1.x.0 --title "Titolo" --generate-notes
+```
