@@ -2071,41 +2071,41 @@ button.loading {
     box-shadow: var(--shadow-sm);
 }
 
-/* Tool Card Color Variants */
+/* Tool Card Color Variants — all derived from primary */
 .tool-card-warning {
-    border-left: 4px solid var(--warning);
-}
-
-.tool-card-warning .tool-icon {
-    background: var(--warning-light);
-    color: var(--warning);
-}
-
-.tool-card-primary {
     border-left: 4px solid var(--primary);
 }
 
-.tool-card-primary .tool-icon {
+.tool-card-warning .tool-icon {
     background: var(--primary-light);
     color: var(--primary);
 }
 
+.tool-card-primary {
+    border-left: 4px solid color-mix(in srgb, var(--primary) 70%, #000);
+}
+
+.tool-card-primary .tool-icon {
+    background: color-mix(in srgb, var(--primary) 15%, white);
+    color: color-mix(in srgb, var(--primary) 70%, #000);
+}
+
 .tool-card-success {
-    border-left: 4px solid var(--success);
+    border-left: 4px solid color-mix(in srgb, var(--primary) 60%, #00b0f0);
 }
 
 .tool-card-success .tool-icon {
-    background: var(--success-light);
-    color: var(--success);
+    background: color-mix(in srgb, var(--primary) 10%, #e0f4ff);
+    color: color-mix(in srgb, var(--primary) 60%, #00b0f0);
 }
 
 .tool-card-danger {
-    border-left: 4px solid var(--danger);
+    border-left: 4px solid color-mix(in srgb, var(--primary) 50%, #f97316);
 }
 
 .tool-card-danger .tool-icon {
-    background: var(--danger-light);
-    color: var(--danger);
+    background: color-mix(in srgb, var(--primary) 10%, #fff3e0);
+    color: color-mix(in srgb, var(--primary) 50%, #f97316);
 }
 
 /* Tool Header */
@@ -2581,7 +2581,7 @@ button.loading {
 }
 
 .modal-mcp-guide .modal-header {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #5c88da 0%, #00b0f0 100%);
     color: white;
     padding: 16px 20px;
     display: flex;
