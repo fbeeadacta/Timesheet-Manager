@@ -20,7 +20,53 @@ Web app statica per l'elaborazione di timesheet aziendali. Legge file Excel con 
 3. Creare un nuovo progetto (verra creata una cartella dedicata)
 4. Caricare un file Excel di timesheet nel formato "ElencoAttivitaSpeseXCliente"
 
-**Note:** Non ci sono test automatici, linting, CI/CD, né `.gitignore`. Il frontend non ha `package.json` — le dipendenze sono caricate via CDN.
+**Note:** Non ci sono test automatici, linting, CI/CD. Il frontend non ha `package.json` — le dipendenze sono caricate via CDN.
+
+## Git Workflow
+
+### Branching Strategy
+
+- **`main`** — Branch stabile. Contiene sempre codice funzionante e rilasciabile.
+- **`feature/*`** — Branch per nuove funzionalita. Creare sempre un branch dedicato prima di iniziare a lavorare.
+
+**Flusso per ogni modifica:**
+1. Creare branch da main: `git checkout -b feature/nome-funzionalita`
+2. Lavorare sul branch con commit incrementali
+3. Testare manualmente nel browser
+4. Merge su main: `git checkout main && git merge feature/nome-funzionalita`
+5. Eliminare il branch: `git branch -d feature/nome-funzionalita`
+6. Push e release se appropriato
+
+**IMPORTANTE:** Non committare mai direttamente su `main`. Usare sempre un feature branch.
+
+### Versioning (Semantic Versioning)
+
+Formato: **vMAJOR.MINOR.PATCH**
+
+| Tipo | Quando | Esempio |
+|------|--------|---------|
+| **PATCH** (v1.0.x) | Bug fix, correzioni piccole | Fix calcolo arrotondamento |
+| **MINOR** (v1.x.0) | Nuova funzionalita retrocompatibile | Aggiunta export PDF |
+| **MAJOR** (vX.0.0) | Breaking change, nuovo formato dati | Nuovo formato project.json |
+
+### Release
+
+Dopo il merge su main, creare tag e release GitHub:
+```bash
+git tag v1.x.0
+gh release create v1.x.0 --title "v1.x.0 - Titolo" --generate-notes
+```
+
+Il flag `--generate-notes` genera automaticamente le note dai commit inclusi nella release.
+
+### Commit Messages
+
+Usare messaggi descrittivi che indicano il tipo di modifica:
+- `Add ...` — Nuova funzionalita
+- `Fix ...` — Bug fix
+- `Update ...` — Miglioramento a funzionalita esistente
+- `Refactor ...` — Ristrutturazione senza cambio di comportamento
+- `Remove ...` — Rimozione codice/funzionalita
 
 ## Architecture
 
