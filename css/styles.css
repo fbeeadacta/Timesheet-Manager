@@ -1,8 +1,8 @@
 /* ==================== VARIABLES ==================== */
 :root {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-light: #dbeafe;
+    --primary: #5c88da;
+    --primary-hover: #4a73c4;
+    --primary-light: #e0e9f7;
     --success: #10b981;
     --success-hover: #059669;
     --success-light: #d1fae5;
@@ -2531,12 +2531,12 @@ button.loading {
 
 /* ==================== MCP GUIDE MODAL ==================== */
 .header-btn-mcp {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #5c88da 0%, #00b0f0 100%);
     color: white;
 }
 
 .header-btn-mcp:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #4a73c4 0%, #0090d0 100%);
 }
 
 .header-btn-mcp .mcp-logo {
